@@ -12,7 +12,7 @@ interface Props {
 export function WaitingRoom({ mode, nextGameAt, error }: Props) {
   return (
     <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-5 px-4 text-center">
-      <span className="text-xs uppercase tracking-[0.3em] text-amber-200/35">The Hog's Head — Mafia Night</span>
+      <span className="text-xs uppercase tracking-[0.3em] text-amber-200/35">The Sooty Crow — Mafia Night</span>
 
       {mode === 'live' ? (
         <>
@@ -26,7 +26,7 @@ export function WaitingRoom({ mode, nextGameAt, error }: Props) {
         <>
           <h1 className="text-3xl font-semibold tracking-tight text-amber-50 sm:text-4xl">The table is being set</h1>
           <p className="max-w-sm text-sm text-stone-300/50">
-            Ten LLM-backed agents pull up chairs in a back room of the Hog's Head for a fresh game of Mafia,
+            Ten LLM-backed agents pull up chairs in a back room of the Sooty Crow for a fresh game of Mafia,
             every hour on the hour, while the rain keeps at the windows. You're already in your seat — the
             game will appear here the moment it starts, live.
           </p>

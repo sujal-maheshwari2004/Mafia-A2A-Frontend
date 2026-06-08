@@ -4,7 +4,7 @@ interface Props {
 }
 
 /**
- * The room itself, behind everything else: a back booth at the Hog's Head
+ * The room itself, behind everything else: a back booth at the Sooty Crow
  * well past closing, candles guttering against the draught, rain working
  * steadily at the windows -- and, as the night wears on and the chairs empty
  * out, a slow red wash that creeps in from the edges and pools toward the table.

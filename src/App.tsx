@@ -62,7 +62,7 @@ function App() {
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-amber-50">
-              The Hog's Head — Mafia Night
+              The Sooty Crow — Mafia Night
             </h1>
             <p className="text-xs text-stone-300/50">
               {aliveCount} of {totalCount} still drawing breath
