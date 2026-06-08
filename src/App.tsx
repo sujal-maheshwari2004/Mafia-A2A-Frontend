@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { PlayerTable } from './components/PlayerTable'
 import { Transcript } from './components/Transcript'
+import { VoteBoard } from './components/VoteBoard'
 import { WaitingRoom } from './components/WaitingRoom'
 import { useGameSocket } from './useGameSocket'
+import { useRoleReveal } from './useRoleReveal'
 import { formatClock, formatCountdown, useCountdown } from './schedule'
 import type { ConnectionStatus, Mode } from './types'
 
@@ -15,6 +17,15 @@ const RETRY_DELAY_MS = 5_000
 
 function App() {
   const { state, connect } = useGameSocket()
+
+  // A fresh table gets a fresh peek -- if a viewer's already revealed seats
+  // and the next game sits down, this re-fetches rather than showing stale cards.
+  const gameKey = useMemo(() => state.players.join('|'), [state.players])
+  const reveal = useRoleReveal(WS_URL, gameKey)
+  const displayRoles = useMemo(
+    () => (reveal.roles ? { ...reveal.roles, ...state.roles } : state.roles),
+    [reveal.roles, state.roles],
+  )
 
   useEffect(() => {
     connect(WS_URL)
@@ -47,6 +58,12 @@ function App() {
         </div>
         <div className="flex items-center gap-3">
           {state.mode === 'replay' && state.nextGameAt && <NextGamePill nextGameAt={state.nextGameAt} />}
+          <RevealToggle
+            revealed={reveal.revealed}
+            loading={reveal.loading}
+            error={reveal.error}
+            onToggle={reveal.toggle}
+          />
           <ModeBadge mode={state.mode} />
           <ConnectionNotice status={state.status} />
         </div>
@@ -64,14 +81,15 @@ function App() {
             players={state.players}
             alive={state.alive}
             present={state.present}
-            roles={state.roles}
+            roles={displayRoles}
             lastSpeaker={state.lastSpeaker}
             phase={state.phase}
             dayNumber={state.dayNumber}
             finished={state.finished}
             winner={state.winner}
           />
-          <Legend />
+          <VoteBoard votes={state.votes} voterCount={state.alive.size} />
+          <Legend revealed={reveal.revealed} />
         </section>
 
         <section className="flex min-h-0 flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-3 sm:p-4">
@@ -132,9 +150,48 @@ function ConnectionNotice({ status }: { status: ConnectionStatus }) {
   )
 }
 
-function Legend() {
+/**
+ * The deliberate exception to "you only learn a role when the table does":
+ * an opt-in peek behind the curtain, backed by `GET /game/roles`. Off by
+ * default, so the suspense stays intact for anyone who'd rather not know.
+ */
+function RevealToggle({
+  revealed,
+  loading,
+  error,
+  onToggle,
+}: {
+  revealed: boolean
+  loading: boolean
+  error: boolean
+  onToggle: () => void
+}) {
+  const label = !revealed ? 'Reveal seats' : loading ? 'Peeking…' : error ? "Couldn't peek" : 'Seats revealed'
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={revealed ? 'Hide roles and go back to watching it unfold' : "Peek at every seat's true role, right now"}
+      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+        revealed
+          ? 'border-violet-400/40 bg-violet-400/15 text-violet-200'
+          : 'border-white/10 bg-white/[0.03] text-white/45 hover:border-white/20 hover:text-white/70'
+      }`}
+    >
+      <span aria-hidden>{revealed ? '🙈' : '🔍'}</span>
+      {label}
+    </button>
+  )
+}
+
+function Legend({ revealed }: { revealed: boolean }) {
   return (
     <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] text-white/35">
+      {revealed && (
+        <span className="flex items-center gap-1.5 text-violet-300/70">
+          <span aria-hidden>🔍</span> seats revealed — you're peeking ahead of the table
+        </span>
+      )}
       <span className="flex items-center gap-1.5">
         <span className="h-2.5 w-2.5 rounded-full border border-violet-300 bg-violet-400/40" /> speaking
       </span>

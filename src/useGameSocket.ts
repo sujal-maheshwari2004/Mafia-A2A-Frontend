@@ -5,6 +5,7 @@ import type {
   PhaseName,
   ServerFrame,
   TimelineItem,
+  VoteCast,
 } from './types'
 
 export interface GameState {
@@ -21,6 +22,8 @@ export interface GameState {
   dayNumber: number
   present: Set<string>
   winner: 'Town' | 'Mafia' | null
+  /** This phase's lynch votes, in casting order -- cleared the moment the next phase begins. */
+  votes: VoteCast[]
   timeline: TimelineItem[]
   lastSpeaker: string | null
   finished: boolean
@@ -38,6 +41,7 @@ const initialState: GameState = {
   dayNumber: 0,
   present: new Set(),
   winner: null,
+  votes: [],
   timeline: [],
   lastSpeaker: null,
   finished: false,
@@ -51,6 +55,7 @@ const freshGame = {
   dayNumber: 0,
   present: new Set<string>(),
   winner: null,
+  votes: [] as VoteCast[],
   timeline: [] as TimelineItem[],
   lastSpeaker: null,
   finished: false,
@@ -137,6 +142,7 @@ function applyFrame(s: GameState, frame: ServerFrame): GameState {
         dayNumber: frame.day_number,
         present: new Set(frame.present),
         lastSpeaker: null,
+        votes: [], // a fresh phase means a fresh round -- yesterday's vote is over
         timeline: [...s.timeline, { kind: 'phase', data: frame }],
       }
 
@@ -146,6 +152,11 @@ function applyFrame(s: GameState, frame: ServerFrame): GameState {
         lastSpeaker: frame.sender,
         timeline: [...s.timeline, { kind: 'talk', data: frame }],
       }
+
+    case 'vote_cast':
+      // Lands live, in casting order -- this is what lets the UI animate the
+      // tally actually building rather than only ever showing the final count.
+      return { ...s, votes: [...s.votes, frame] }
 
     case 'night_resolved': {
       const alive = new Set(s.alive)
@@ -161,9 +172,14 @@ function applyFrame(s: GameState, frame: ServerFrame): GameState {
     case 'day_resolved': {
       const alive = new Set(s.alive)
       if (frame.lynched) alive.delete(frame.lynched)
+      // A lynching unmasks its victim on the spot -- the table sees it happen,
+      // so the seat should reveal it right then, not wait for the final curtain.
+      const roles =
+        frame.lynched && frame.lynched_role ? { ...s.roles, [frame.lynched]: frame.lynched_role } : s.roles
       return {
         ...s,
         alive,
+        roles,
         lastSpeaker: null,
         timeline: [...s.timeline, { kind: 'day', data: frame }],
       }

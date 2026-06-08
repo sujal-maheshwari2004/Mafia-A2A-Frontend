@@ -32,6 +32,20 @@ export interface NightResolved {
   saved: boolean
 }
 
+/**
+ * One lynch vote landing live, with the running tally the instant after it --
+ * emitted in casting order, well before `day_resolved`'s final headline. This
+ * is what lets the UI animate the count actually *building* (bars climbing, a
+ * leader emerging, a late swing) instead of only ever showing a finished result.
+ */
+export interface VoteCast {
+  type: 'vote_cast'
+  day_number: number
+  voter: string
+  target: string | null
+  tally_so_far: Record<string, number>
+}
+
 export interface DayResolved {
   type: 'day_resolved'
   day_number: number
@@ -57,6 +71,7 @@ export type GameEvent =
   | PhaseStarted
   | TableTalk
   | NightResolved
+  | VoteCast
   | DayResolved
   | GameEnded
   | ErrorFrame
