@@ -91,6 +91,12 @@ export type ServerFrame = GameEvent | StatusFrame
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error'
 
+/** A private exchange caught mid-flight -- sender plus whoever it actually reached. */
+export interface Huddle {
+  cast: 'multicast' | 'unicast'
+  members: string[]
+}
+
 /** A timeline entry the UI renders -- either a chat message or a narrative beat. */
 export type TimelineItem =
   | { kind: 'talk'; data: TableTalk }

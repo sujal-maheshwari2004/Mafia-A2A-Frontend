@@ -1,4 +1,4 @@
-import type { PhaseName } from '../types'
+import type { Huddle, PhaseName } from '../types'
 
 interface Props {
   players: string[]
@@ -6,6 +6,8 @@ interface Props {
   present: Set<string>
   roles: Record<string, string>
   lastSpeaker: string | null
+  /** The private exchange currently in the air -- whoever it's actually reaching, drawn together. */
+  huddle: Huddle | null
   phase: PhaseName | null
   dayNumber: number
   finished: boolean
@@ -13,6 +15,11 @@ interface Props {
   /** 0..1 -- how far the night has soured. The table wears it as much as the room does. */
   bloodLevel: number
 }
+
+const HUDDLE_COLOR = {
+  multicast: { ring: 'border-amber-400/60', line: 'rgba(251, 191, 36, 0.4)' },
+  unicast: { ring: 'border-rose-400/55', line: 'rgba(251, 113, 133, 0.4)' },
+} as const
 
 const ROLE_COLOR: Record<string, string> = {
   Mafia: 'text-red-300 border-red-500/40 bg-red-500/10',
@@ -27,6 +34,7 @@ export function PlayerTable({
   present,
   roles,
   lastSpeaker,
+  huddle,
   phase,
   dayNumber,
   finished,
@@ -36,6 +44,24 @@ export function PlayerTable({
   const n = players.length
   const radiusX = 42
   const radiusY = 38
+
+  const seatOf = (name: string) => {
+    const i = players.indexOf(name)
+    if (i < 0) return null
+    const angle = (i / n) * 2 * Math.PI - Math.PI / 2
+    return { x: 50 + radiusX * Math.cos(angle), y: 50 + radiusY * Math.sin(angle) }
+  }
+
+  // The sender pulled these people aside specifically -- draw the huddle as
+  // spokes from them, the same shape the move actually took at the table.
+  const huddleLines =
+    huddle && huddle.members.length > 1
+      ? huddle.members.slice(1).flatMap((member) => {
+          const from = seatOf(huddle.members[0])
+          const to = seatOf(member)
+          return from && to ? [{ key: member, from, to }] : []
+        })
+      : []
 
   return (
     <div className="relative mx-auto aspect-[16/10] w-full max-w-3xl">
@@ -68,6 +94,32 @@ export function PlayerTable({
         </div>
       </div>
 
+      {/* huddle spokes -- drawn from whoever pulled people aside to whoever they reached,
+          the same dashed-and-leaning-in shape the move took at the table itself */}
+      {huddleLines.length > 0 && huddle && (
+        <svg
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="pointer-events-none absolute inset-0 h-full w-full"
+          aria-hidden
+        >
+          {huddleLines.map(({ key, from, to }) => (
+            <line
+              key={key}
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              stroke={HUDDLE_COLOR[huddle.cast].line}
+              strokeWidth={1.4}
+              strokeDasharray="3 3"
+              strokeLinecap="round"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+        </svg>
+      )}
+
       {/* seats */}
       {players.map((name, i) => {
         const angle = (i / n) * 2 * Math.PI - Math.PI / 2
@@ -76,6 +128,7 @@ export function PlayerTable({
         const isAlive = alive.has(name)
         const isPresent = present.has(name) && isAlive
         const isSpeaking = lastSpeaker === name
+        const isHuddling = (huddle?.members.includes(name) ?? false) && isAlive
         const role = roles[name]
 
         return (
@@ -88,6 +141,12 @@ export function PlayerTable({
               {!isAlive && (
                 <span
                   className="blood-pool pointer-events-none absolute left-1/2 top-[60%] -z-10 h-8 w-14 -translate-x-1/2 rounded-full"
+                  aria-hidden
+                />
+              )}
+              {isHuddling && huddle && (
+                <span
+                  className={`pointer-events-none absolute -inset-1.5 rounded-full border-2 border-dashed ${HUDDLE_COLOR[huddle.cast].ring}`}
                   aria-hidden
                 />
               )}
@@ -109,6 +168,11 @@ export function PlayerTable({
                 {!isAlive && (
                   <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-[10px]">
                     💀
+                  </span>
+                )}
+                {isHuddling && huddle && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-[10px]">
+                    {huddle.cast === 'unicast' ? '🤐' : '🤫'}
                   </span>
                 )}
               </div>

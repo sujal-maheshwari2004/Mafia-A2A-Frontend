@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import type {
   ConnectionStatus,
+  Huddle,
   Mode,
   PhaseName,
   ServerFrame,
@@ -26,6 +27,8 @@ export interface GameState {
   votes: VoteCast[]
   timeline: TimelineItem[]
   lastSpeaker: string | null
+  /** The most recent private exchange still in the air -- who's actually huddled up right now. */
+  huddle: Huddle | null
   finished: boolean
 }
 
@@ -44,6 +47,7 @@ const initialState: GameState = {
   votes: [],
   timeline: [],
   lastSpeaker: null,
+  huddle: null,
   finished: false,
 }
 
@@ -58,6 +62,7 @@ const freshGame = {
   votes: [] as VoteCast[],
   timeline: [] as TimelineItem[],
   lastSpeaker: null,
+  huddle: null as Huddle | null,
   finished: false,
 }
 
@@ -142,6 +147,7 @@ function applyFrame(s: GameState, frame: ServerFrame): GameState {
         dayNumber: frame.day_number,
         present: new Set(frame.present),
         lastSpeaker: null,
+        huddle: null, // a new phase clears the floor -- no huddle survives the night/day boundary
         votes: [], // a fresh phase means a fresh round -- yesterday's vote is over
         timeline: [...s.timeline, { kind: 'phase', data: frame }],
       }
@@ -150,6 +156,13 @@ function applyFrame(s: GameState, frame: ServerFrame): GameState {
       return {
         ...s,
         lastSpeaker: frame.sender,
+        // Broadcasts play to the whole room -- no huddle to highlight. A
+        // unicast/multicast pulls its sender and recipients aside, visibly,
+        // so that's exactly the group worth drawing the eye to on the table.
+        huddle:
+          frame.cast === 'broadcast'
+            ? null
+            : { cast: frame.cast, members: [frame.sender, ...frame.to] },
         timeline: [...s.timeline, { kind: 'talk', data: frame }],
       }
 

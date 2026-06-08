@@ -96,6 +96,7 @@ function App() {
               present={state.present}
               roles={displayRoles}
               lastSpeaker={state.lastSpeaker}
+              huddle={state.huddle}
               phase={state.phase}
               dayNumber={state.dayNumber}
               finished={state.finished}
@@ -218,6 +219,12 @@ function Legend({ revealed }: { revealed: boolean }) {
       </span>
       <span className="flex items-center gap-1.5">
         <span className="h-2.5 w-2.5 rounded-full border border-red-900/30 bg-black/40 grayscale">💀</span> eliminated
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full border-2 border-dashed border-amber-400/60" /> 🤫 huddling
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full border-2 border-dashed border-rose-400/55" /> 🤐 whispering
       </span>
     </div>
   )
