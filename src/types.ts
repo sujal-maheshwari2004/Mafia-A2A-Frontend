@@ -61,12 +61,18 @@ export type GameEvent =
   | GameEnded
   | ErrorFrame
 
-export interface GameConfig {
-  count: number
-  seed?: number
-  brain: 'heuristic' | 'llm' | 'mixed'
-  model: string
+/** What the table looks like right now -- sent the instant you connect, and again whenever it changes. */
+export type Mode = 'idle' | 'live' | 'replay'
+
+export interface StatusFrame {
+  type: 'status'
+  mode: Mode
+  /** ISO 8601, or null while a game is live (there's nothing to count down to). */
+  next_game_at: string | null
 }
+
+/** Everything that can arrive over the wire -- a `status` handshake/update, or one beat of the game itself. */
+export type ServerFrame = GameEvent | StatusFrame
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error'
 

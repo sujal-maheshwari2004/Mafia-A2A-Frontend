@@ -1,46 +1,35 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { PlayerTable } from './components/PlayerTable'
 import { Transcript } from './components/Transcript'
 import { WaitingRoom } from './components/WaitingRoom'
 import { useGameSocket } from './useGameSocket'
-import { formatClock, formatCountdown, nextHourBoundary, useCountdown } from './schedule'
-import type { GameConfig } from './types'
+import { formatClock, formatCountdown, useCountdown } from './schedule'
+import type { ConnectionStatus, Mode } from './types'
 
-// Fully automatic spectator: fixed backend, fixed roster, no viewer controls.
+// Fully automatic spectator: one fixed backend streaming the one shared,
+// hourly scheduled game. Nothing for a viewer to configure or wait through --
+// connect once, and the server catches you up on whatever's on the table
+// (live, or the last game's replay) and keeps the feed open across games.
 const WS_URL = 'wss://mafia-a2a-909729949991.asia-south1.run.app/ws/game'
-const GAME_CONFIG: GameConfig = { count: 7, brain: 'llm', model: 'gpt-4o-mini' }
-const RETRY_DELAY_MS = 15_000
+const RETRY_DELAY_MS = 5_000
 
 function App() {
   const { state, connect } = useGameSocket()
-  const [nextGameAt, setNextGameAt] = useState(() => nextHourBoundary())
-  const { remainingMs, reached } = useCountdown(nextGameAt)
 
-  // The moment this hour's slot arrives, dial in.
   useEffect(() => {
-    if (reached && state.status !== 'open' && state.status !== 'connecting') {
-      connect(WS_URL, GAME_CONFIG)
-    }
-  }, [reached, state.status, connect])
+    connect(WS_URL)
+  }, [connect])
 
-  // Once a game wraps up, queue up the next hourly slot.
+  // The server is the source of truth for the schedule and the transcript --
+  // if the socket drops, just reopen it and let the next snapshot catch us up.
   useEffect(() => {
-    if (state.finished) {
-      setNextGameAt(nextHourBoundary())
-    }
-  }, [state.finished])
-
-  // A dropped or failed connection shouldn't cost viewers the rest of the hour.
-  useEffect(() => {
-    if (!reached) return
     if (state.status !== 'closed' && state.status !== 'error') return
-    if (state.players.length > 0) return // this slot's game already played out
-    const id = setTimeout(() => connect(WS_URL, GAME_CONFIG), RETRY_DELAY_MS)
+    const id = setTimeout(() => connect(WS_URL), RETRY_DELAY_MS)
     return () => clearTimeout(id)
-  }, [reached, state.status, state.players.length, connect])
+  }, [state.status, connect])
 
   if (state.players.length === 0) {
-    return <WaitingRoom nextGameAt={nextGameAt} remainingMs={remainingMs} status={state.status} error={state.error} />
+    return <WaitingRoom mode={state.mode} nextGameAt={state.nextGameAt} error={state.error} />
   }
 
   const aliveCount = state.alive.size
@@ -57,12 +46,9 @@ function App() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {state.finished && (
-            <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/45">
-              Next game {formatClock(nextGameAt)} · {formatCountdown(remainingMs)}
-            </span>
-          )}
-          <StatusPill status={state.status} finished={state.finished} />
+          {state.mode === 'replay' && state.nextGameAt && <NextGamePill nextGameAt={state.nextGameAt} />}
+          <ModeBadge mode={state.mode} />
+          <ConnectionNotice status={state.status} />
         </div>
       </header>
 
@@ -101,24 +87,46 @@ function App() {
   )
 }
 
-function StatusPill({ status, finished }: { status: string; finished: boolean }) {
-  if (finished) {
+function NextGamePill({ nextGameAt }: { nextGameAt: Date }) {
+  const { remainingMs } = useCountdown(nextGameAt)
+  return (
+    <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-white/45">
+      Next live game {formatClock(nextGameAt)} · {formatCountdown(remainingMs)}
+    </span>
+  )
+}
+
+function ModeBadge({ mode }: { mode: Mode | null }) {
+  if (mode === 'live') {
     return (
-      <span className="rounded-full border border-violet-400/40 bg-violet-400/10 px-2.5 py-1 text-xs font-medium text-violet-200">
-        Game over
+      <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 text-xs font-medium text-emerald-300">
+        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+        Live
       </span>
     )
   }
+  if (mode === 'replay') {
+    return (
+      <span className="rounded-full border border-violet-400/40 bg-violet-400/10 px-2.5 py-1 text-xs font-medium text-violet-200">
+        📼 Replay — last game
+      </span>
+    )
+  }
+  return null
+}
+
+function ConnectionNotice({ status }: { status: ConnectionStatus }) {
+  if (status === 'open') return null
   const map: Record<string, { label: string; cls: string }> = {
-    open: { label: 'Live', cls: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-300' },
+    idle: { label: 'Connecting…', cls: 'border-amber-400/40 bg-amber-400/10 text-amber-300' },
     connecting: { label: 'Connecting…', cls: 'border-amber-400/40 bg-amber-400/10 text-amber-300' },
-    closed: { label: 'Disconnected', cls: 'border-white/15 bg-white/[0.04] text-white/50' },
-    error: { label: 'Error', cls: 'border-red-400/40 bg-red-400/10 text-red-300' },
+    closed: { label: 'Reconnecting…', cls: 'border-white/15 bg-white/[0.04] text-white/50' },
+    error: { label: 'Reconnecting…', cls: 'border-red-400/40 bg-red-400/10 text-red-300' },
   }
   const s = map[status] ?? map.closed
   return (
     <span className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${s.cls}`}>
-      {status === 'open' && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />}
+      <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-current opacity-60" />
       {s.label}
     </span>
   )

@@ -1,12 +1,8 @@
 import { useEffect, useState } from 'react'
 
-/** The next top-of-the-hour instant strictly after `from`. */
-export function nextHourBoundary(from: Date = new Date()): Date {
-  const next = new Date(from)
-  next.setMinutes(0, 0, 0)
-  next.setHours(next.getHours() + 1)
-  return next
-}
+// The server is the source of truth for *when* the next game starts (it sends
+// `next_game_at` in its status frames) -- this module just renders a countdown
+// to whatever instant it names.
 
 export function useCountdown(target: Date) {
   const [now, setNow] = useState(() => Date.now())
