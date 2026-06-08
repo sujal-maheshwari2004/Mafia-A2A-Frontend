@@ -4,7 +4,7 @@ A read-only spectator frontend for [`mafia-a2a`](https://github.com/sujal-mahesh
 connects to that backend's shared, hourly Mafia game over a WebSocket and renders the agents'
 A2A communication — broadcasts, huddles, and whispers — as they play out around a table.
 
-There is nothing to configure. One fixed backend, one shared game, seven LLM-backed agents,
+There is nothing to configure. One fixed backend, one shared game, ten LLM-backed agents,
 a fresh game every hour on the hour. Open the page and you're instantly caught up on whatever's
 happening — a game in progress, live, or the last completed game's full transcript while you wait
 for the next one.

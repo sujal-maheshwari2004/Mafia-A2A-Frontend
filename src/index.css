@@ -8,11 +8,17 @@ html, body, #root {
   height: 100%;
 }
 
+/* A back room of the Hog's Head, well past closing -- guttering candlelight
+   over old wood, stone walls gone black with soot, and rain working at the
+   windows outside. Warm at the centre, swallowed by shadow at the edges. */
 body {
   margin: 0;
   font-family: ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
-  background: #0b0c10;
-  color: #e5e7eb;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -8%, rgba(120, 78, 36, 0.16), transparent 60%),
+    radial-gradient(ellipse 120% 90% at 50% 112%, rgba(0, 0, 0, 0.8), transparent 55%),
+    linear-gradient(180deg, #16100b 0%, #0d0a07 55%, #080605 100%);
+  color: #e9ddc9;
 }
 
 ::-webkit-scrollbar {
@@ -23,11 +29,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3a3d4a;
+  background: #4a3726;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b4f5e;
+  background: #6b5039;
 }
 
 /* A vote landing live should feel like it just arrived, not just appear. */
@@ -40,4 +46,84 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * The room: rain on the glass, candles guttering in the draught, and *
+ * a slow wash of red that deepens as the bodies pile up.             *
+ * ------------------------------------------------------------------ */
+
+@keyframes rain-fall {
+  from {
+    background-position: 0 0, 30px 0;
+  }
+  to {
+    background-position: -200px 1000px, -130px 1300px;
+  }
+}
+
+.atmosphere-rain {
+  background-image:
+    repeating-linear-gradient(112deg, transparent 0 3px, rgba(176, 197, 222, 0.10) 3px 4px, transparent 4px 70px),
+    repeating-linear-gradient(117deg, transparent 0 2px, rgba(176, 197, 222, 0.06) 2px 3px, transparent 3px 100px);
+  background-size: 220% 220%;
+  animation: rain-fall 0.8s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes candle-flicker {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  18% { opacity: 0.62; transform: scale(1.05); }
+  42% { opacity: 0.38; transform: scale(0.96); }
+  68% { opacity: 0.58; transform: scale(1.03); }
+  86% { opacity: 0.45; transform: scale(0.99); }
+}
+
+.atmosphere-candle {
+  animation: candle-flicker 5.5s ease-in-out infinite;
+  filter: blur(6px);
+}
+
+.atmosphere-candle--two {
+  animation-duration: 6.8s;
+  animation-delay: -2.6s;
+}
+
+.atmosphere-vignette {
+  background:
+    radial-gradient(ellipse 65% 55% at 50% 36%, rgba(230, 165, 70, 0.08), transparent 62%),
+    radial-gradient(ellipse 130% 95% at 50% 116%, rgba(0, 0, 0, 0.78), transparent 50%),
+    radial-gradient(ellipse 130% 90% at 50% -14%, rgba(18, 26, 36, 0.6), transparent 55%);
+}
+
+/* The night gets bloodier with the body count -- this is the room itself
+   souring, a wash that creeps in from the edges and pools toward the table. */
+.atmosphere-blood {
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 64%,
+    rgba(120, 10, 14, 0.6) 0%,
+    rgba(74, 8, 11, 0.28) 42%,
+    transparent 74%
+  );
+  transition: opacity 1.8s ease;
+}
+
+/* ------------------------------------------------------------------ *
+ * The table itself -- and what's left on it by the end of the night. *
+ * ------------------------------------------------------------------ */
+
+.blood-spatter {
+  background-image:
+    radial-gradient(circle at 27% 73%, rgba(96, 11, 13, 0.95) 0%, transparent 8%),
+    radial-gradient(circle at 64% 34%, rgba(78, 9, 11, 0.92) 0%, transparent 6%),
+    radial-gradient(circle at 46% 83%, rgba(114, 17, 17, 0.82) 0%, transparent 12%),
+    radial-gradient(circle at 17% 27%, rgba(66, 7, 9, 0.78) 0%, transparent 5%),
+    radial-gradient(circle at 81% 64%, rgba(84, 10, 13, 0.74) 0%, transparent 7%),
+    radial-gradient(ellipse 58% 48% at 52% 56%, rgba(88, 11, 13, 0.4) 0%, transparent 72%);
+  transition: opacity 1.8s ease;
+}
+
+.blood-pool {
+  background: radial-gradient(ellipse, rgba(110, 14, 17, 0.65) 0%, rgba(110, 14, 17, 0.22) 55%, transparent 76%);
+  filter: blur(1.5px);
 }
